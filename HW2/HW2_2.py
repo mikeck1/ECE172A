@@ -17,7 +17,7 @@ import heapq
 # initialize parameters
 height = 50; # map height
 width = 50 # map width
-num_bots = 1 # number of bots
+num_bots = 5 # number of bots
 max_itr = 2500 # maximum number of iterations
 
 wall = 1 # value for a wall in the map matrix
@@ -61,7 +61,13 @@ def get_unexplored_areas(explore_map, unmapped_value):
     unexplored areas in this case. If there are no unexplored areas, then
     unexplored_areas should return empty [].
     '''
-    return 0
+    unexplorered_list = []
+    for i in range(50):
+        for j in range(50):
+            if explore_map[i][j] == unmapped_value or explore_map[i][j] == 0.:
+                unexplorered_list.append([i,j])
+    # print("get_unexplored_areas",unexplorered_list)
+    return unexplorered_list
 
 def get_new_destination(current_position, unexplored_areas):
     '''
@@ -71,8 +77,16 @@ def get_new_destination(current_position, unexplored_areas):
     we define "closest" using the euclidean distance measure,
     e.g. sqrt((x1-x2)^2 + (y1-y2)^2).
     '''
-
-    return 0
+    current_position
+    goal = None
+    m = float("inf")
+    for pos in unexplored_areas:
+        temp = m
+        m = min(m, heuristic(current_position,pos))
+        if m != temp:
+            goal = pos
+    # print("get_new_destination",goal)
+    return goal
 
 
 def update_explore_map(dest, route, explore_map, planned, unmapped):
@@ -81,7 +95,20 @@ def update_explore_map(dest, route, explore_map, planned, unmapped):
     are marked as PLANNED only if it was previous UNMAPPED in the explore_map
     variable.
     '''
+    # for el in route+dest:
+    #     pos = (el[0],el[1])
+    #     # print(explore_map[el])
+    #     if explore_map[pos] == 0.0: explore_map[pos] = planned
+        
+    # for i, row in enumerate(explore_map):
+    #     for j ,el in enumerate(row):
+    #         if explore_map[i][j] == unmapped:
+    for i,j in route:
+        if explore_map[(i,j)] == unmapped: explore_map[(i,j)] = planned
 
+    if explore_map[dest[0]][dest[1]] == unmapped and explore_map[dest[0]][dest[1]] != 1.0: explore_map[dest[0]][dest[1]] = planned
+    # print(dest)
+    # print("update_explore_map\n",explore_map)
     return explore_map
 
 def update_position(curPos, route, dest, explore_map, mapped):
@@ -95,7 +122,15 @@ def update_position(curPos, route, dest, explore_map, mapped):
        updated to e.g. if route was inputted as an Nx2 matrix, it should
        output as a (N-1)x2 matrix.
     '''
-
+    explore_map[(curPos[0],curPos[1])] = mapped
+    curPos = route[0] #1
+    route = np.delete(route, (0), axis=0) #4
+    # import time
+    # time.sleep(20000)
+    explore_map[curPos[0]][curPos[1]] = mapped #2
+    if curPos[0] == dest[0] and curPos[1] == dest[1]: dest = [] #3
+    
+    # print("update_position:\n","curPos:",curPos, "route:",route, "dest:",dest)
     return curPos, route, dest, explore_map
 
 def update_bot_info(curPos, dest, route, explore_map, botNum):
@@ -124,12 +159,13 @@ def a_star(array, start, goal):
     heapq.heappush(oheap, (fscore[start], start))
  
     while oheap:
-
+        # print("hello")
         current = heapq.heappop(oheap)[1]
 
         if current == goal:
             data = []
             while current in came_from:
+                # print("hello")
                 data.append(list(current))
                 current = came_from[current]
             return np.array(data)
@@ -176,7 +212,7 @@ for itr in range(max_itr):
             # get the locations of all areas that are labeled as unmapped 
             # TODO: write this function above.
             unexplored_areas = get_unexplored_areas(explore_map, unmapped)
-            
+            # print("hello")
             # if there are no more unexplored areas, then this bot stops moving
             if len(unexplored_areas) == 0:
                 dest = []
@@ -202,19 +238,20 @@ for itr in range(max_itr):
         
         # update bot's curr position, past position, destination, and map
         update_bot_info(curPos, dest, route, explore_map, botNum)
+    num_frames_skipped = 20
+    if itr % num_frames_skipped == 0:
+        # update display
+        plt.imshow(explore_map, cmap='gray')
+        for i in range(num_bots):
+            fig = plt.gcf()
+            ax = fig.gca()
+            ax.add_patch(patches.Rectangle((bots[i]['current_position'][1]-.5, bots[i]['current_position'][0]-.5), 1, 1, edgecolor = 'blue', facecolor = 'red', fill=True))
+            if len(bots[i]['destination']) != 0:
+                plt.plot([b[1] for b in bots[i]['route']], [b[0] for b in bots[i]['route']], color='red')
+                plt.plot(bots[i]['destination'][1], bots[i]['destination'][0], color='yellow')
 
-    # update display
-    plt.imshow(explore_map, cmap='gray')
-    for i in range(num_bots):
-        fig = plt.gcf()
-        ax = fig.gca()
-        ax.add_patch(patches.Rectangle((bots[i]['current_position'][1]-.5, bots[i]['current_position'][0]-.5), 1, 1, edgecolor = 'blue', facecolor = 'red', fill=True))
-        if len(bots[i]['destination']) != 0:
-            plt.plot([b[1] for b in bots[i]['route']], [b[0] for b in bots[i]['route']], color='red')
-            plt.plot(bots[i]['destination'][1], bots[i]['destination'][0], color='yellow')
-
-    plt.show(block=False)
-    plt.pause(.25)
+        plt.show(block=False)
+        plt.pause(.25)
     ax.patches = []
     mapped_count = sum(sum(np.array(explore_map) == mapped))
     wall_count = sum(sum(np.array(explore_map) == wall))
